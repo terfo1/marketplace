@@ -8,9 +8,9 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -58,10 +58,11 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	res, err := database.UsersColl.InsertOne(ctx, user)
 	if err != nil {
+		log.Printf("Error creating user: %v", err)
 		helpers.RespondError(w, http.StatusInternalServerError, "could not create user")
 		return
 	}
-	user.ID = res.InsertedID.(primitive.ObjectID)
+	user.ID = res.InsertedID.(bson.ObjectID)
 	token, err := middleware.CreateToken(user.ID)
 	if err != nil {
 		helpers.RespondError(w, http.StatusInternalServerError, "could not create token")
@@ -146,7 +147,7 @@ func ListProductsHandler(w http.ResponseWriter, r *http.Request) {
 
 func ProductDetailHandler(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	objID, err := primitive.ObjectIDFromHex(id)
+	objID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		helpers.RespondError(w, http.StatusBadRequest, "invalid id")
 		return
@@ -203,7 +204,7 @@ func PostInteraction(w http.ResponseWriter, r *http.Request) {
 		helpers.RespondError(w, http.StatusBadRequest, "invalid payload")
 		return
 	}
-	pid, err := primitive.ObjectIDFromHex(payload.ProductID)
+	pid, err := bson.ObjectIDFromHex(payload.ProductID)
 	if err != nil {
 		helpers.RespondError(w, http.StatusBadRequest, "invalid product id")
 		return
@@ -299,7 +300,7 @@ func RecommendationsHandler(w http.ResponseWriter, r *http.Request) {
 		helpers.RespondJSON(w, http.StatusOK, newest)
 		return
 	}
-	myProductIDs := make([]primitive.ObjectID, 0, len(myInter))
+	myProductIDs := make([]bson.ObjectID, 0, len(myInter))
 	for _, it := range myInter {
 		myProductIDs = append(myProductIDs, it.ProductID)
 	}
@@ -311,7 +312,7 @@ func RecommendationsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var others []models.Interaction
 	otherCursor.All(ctx, &others)
-	userSet := map[primitive.ObjectID]struct{}{}
+	userSet := map[bson.ObjectID]struct{}{}
 	for _, o := range others {
 		if o.UserID == userID {
 			continue
@@ -322,7 +323,7 @@ func RecommendationsHandler(w http.ResponseWriter, r *http.Request) {
 		helpers.RespondJSON(w, http.StatusOK, []models.Product{})
 		return
 	}
-	otherUsers := make([]primitive.ObjectID, 0, len(userSet))
+	otherUsers := make([]bson.ObjectID, 0, len(userSet))
 	for u := range userSet {
 		otherUsers = append(otherUsers, u)
 	}
@@ -334,18 +335,18 @@ func RecommendationsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var rels []models.Interaction
 	cursor3.All(ctx, &rels)
-	countByProduct := map[primitive.ObjectID]int{}
+	countByProduct := map[bson.ObjectID]int{}
 	for _, r := range rels {
 		countByProduct[r.ProductID]++
 	}
 	// exclude products user already interacted with
-	exclude := map[primitive.ObjectID]struct{}{}
+	exclude := map[bson.ObjectID]struct{}{}
 	for _, id := range myProductIDs {
 		exclude[id] = struct{}{}
 	}
 	// build list sorted by count
 	type kv struct {
-		id    primitive.ObjectID
+		id    bson.ObjectID
 		score int
 	}
 	kvList := []kv{}
