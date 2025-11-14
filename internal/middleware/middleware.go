@@ -3,11 +3,12 @@ package middleware
 import (
 	"PROJECTTEST/internal/helpers"
 	"errors"
-	"github.com/golang-jwt/jwt/v5"
-	"go.mongodb.org/mongo-driver/v2/bson"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 var JWTSecret []byte

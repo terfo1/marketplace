@@ -1,0 +1,31 @@
+version: '3.9'
+
+services:
+  backend:
+    build: .
+    container_name: projecttest-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - '8080:8080'
+    depends_on:
+      - mongo
+    environment:
+      URI: 'mongodb://root:rootpass@mongo:27017'
+      SECRET: '${SECRET}' # SECRET будет взят из твоего .env
+
+  mongo:
+    image: mongo:7
+    container_name: projecttest-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpass
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
